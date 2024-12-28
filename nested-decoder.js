@@ -37,8 +37,23 @@ function nestedDecoderOptions() {
 }
 
 function nestedDecoderDetection(encodedString) {
-	// TODO: detect the type of encoding for a given string if possible
-	return 'nestedDecoderDetection';
+	encodedString = encodedString.trim();
+	var suggestion = null;
+	if(encodedString.match(/^(&#x[a-f0-9]+;)+$/) !== null)
+		suggestion = 'html';
+	else if(encodedString.match(/^(\\\u[a-f0-9]{4})+$/) !== null)
+		suggestion = 'unicode';
+	else if(encodedString.match(/^([A-Za-z0-9=]+)$/) !== null)
+		suggestion = 'base64';
+	else if(encodedString.match(/^([0-9 ]+)$/) !== null)
+		suggestion = 'ascii';
+	else if(encodedString.match(/^([0-9a-f ]+)$/) !== null)
+		suggestion = 'hex';
+	else if(encodedString.match(/^([0-1 ]+)$/) !== null)
+		suggestion = 'binary';
+	else if(encodedString.match(/^([1 ]+)$/) !== null)
+		suggestion = 'unary';
+	return {'suggestion': suggestion};
 }
 
 function nestedDecoderDecode(encodedString, pattern) {
