@@ -4,6 +4,7 @@ function nestedDecoder(encodedString = false, pattern = false) {
 	} else if(!pattern || typeof pattern === 'undefined') {
 		return nestedDecoderDetection(encodedString);
 	} else {
+		pattern = pattern.toLowerCase();
 		if(typeof pattern !== 'object') {
 			pattern = pattern.split(',');
 		}
@@ -15,8 +16,9 @@ function nestedDecoderOptions() {
 	var options = {};
 	options['parameters'] = ['encodedString', 'pattern'];
 	options['encodings'] = {
-		'ascii': 'ASCII',
+		'ascii': 'ASCII encoding',
 		'base<x>': 'different numbering systems where x is the base of the numbering system; x can be one of: 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 64',
+		'base<x>a': 'building onto base (see base<x>) aditionally an ASCII decoding (see ascii) is performed after the base',
 		'binary': 'see base2',
 		'duodec': 'see base12',
 		'hex': 'see base16',
@@ -40,64 +42,37 @@ function nestedDecoderDetection(encodedString) {
 }
 
 function nestedDecoderDecode(encodedString, pattern) {
+	var alias = {'binary': 'base2', 'duodec': 'base12', 'hex': 'base16', 'oct': 'base8', 'pental': 'base5', 'quaternary': 'base4', 'senary': 'base6', 'septenary': 'base7', 'trinary': 'base3', 'unary': 'base1', 'vigesimal': 'base20'};
 	var decodedString = encodedString;
 	for(let i = 0; i < pattern.length; i++) {
+		if(Object.keys(alias).indexOf(pattern[i]) != -1)
+			pattern[i] = (alias[pattern[i]]);
+		if(pattern[i].startsWith('base')) {
+			let base = 0;
+			if(pattern[i].slice(-1) == 'a') {
+				base = pattern[i].substring(4, pattern[i].length - 1);
+			} else {
+				base = pattern[i].substring(4);
+			}
+			if(base == 1)
+				decodedString = nestedDecoderDecodeUnary(decodedString);
+			else if(base == 64)
+				decodedString = nestedDecoderDecodeBase64(decodedString);
+			else
+				decodedString = nestedDecoderDecodeMultiBase(decodedString, base);
+			if(pattern[i].slice(-1) == 'a')
+				decodedString = nestedDecoderDecodeAscii(decodedString);
+			continue;
+		}
 		switch(pattern[i]) {
 			case 'ascii':
 				decodedString = nestedDecoderDecodeAscii(decodedString);
 				break
-			case 'base64':
-				decodedString = nestedDecoderDecodeBase64(decodedString);
-				break;
-			case 'binary':
-			case 'base2':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 2);
-				break;
-			case 'duodec':
-			case 'base12':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 12);
-				break;
-			case 'hex':
-			case 'base16':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 16);
-				break;
 			case 'html':
 				decodedString = nestedDecoderDecodeHTML(decodedString);
 				break;
-			case 'oct':
-			case 'base8':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 8);
-				break;
-			case 'pental':
-			case 'base5':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 5);
-				break;
-			case 'quaternary':
-			case 'base4':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 4);
-				break;
-			case 'senary':
-			case 'base6':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 6);
-				break;
-			case 'septenary':
-			case 'base7':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 7);
-				break;
-			case 'trinary':
-			case 'base3':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 3);
-				break;
-			case 'unary':
-			case 'base1':
-				decodedString = nestedDecoderDecodeUnary(decodedString);
-				break;
 			case 'unicode':
 				decodedString = nestedDecoderDecodeUnicode(decodedString);
-				break;
-			case 'vigesimal':
-			case 'base20':
-				decodedString = nestedDecoderDecodeMultiBase(decodedString, 20);
 				break;
 		}
 	}
