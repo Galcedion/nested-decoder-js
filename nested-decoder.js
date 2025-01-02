@@ -26,6 +26,8 @@ function nestedDecoderOptions() {
 		'oct': 'see base8',
 		'pental': 'see base5',
 		'quaternary': 'see base4',
+		'rot<x>': 'rotate the characters by x (can be negative); only rotates the base latin letters in the ASCII table',
+		'rot<x>a': 'building onto rot (see rot<x>) the string is rotated regardless of the position on the ASCII / Unicode table',
 		'senary': 'see base6',
 		'septenary': 'see base7',
 		'trinary': 'see base3',
@@ -64,11 +66,10 @@ function nestedDecoderDecode(encodedString, pattern) {
 			pattern[i] = (alias[pattern[i]]);
 		if(pattern[i].startsWith('base')) {
 			let base = 0;
-			if(pattern[i].slice(-1) == 'a') {
+			if(pattern[i].slice(-1) == 'a')
 				base = pattern[i].substring(4, pattern[i].length - 1);
-			} else {
+			else
 				base = pattern[i].substring(4);
-			}
 			if(base == 1)
 				decodedString = nestedDecoderDecodeUnary(decodedString);
 			else if(base == 64)
@@ -77,6 +78,19 @@ function nestedDecoderDecode(encodedString, pattern) {
 				decodedString = nestedDecoderDecodeMultiBase(decodedString, base);
 			if(pattern[i].slice(-1) == 'a')
 				decodedString = nestedDecoderDecodeAscii(decodedString);
+			continue;
+		}
+		else if(pattern[i].startsWith('rot')) {
+			let move = 0;
+			let fullCharset = false;
+			if(pattern[i].slice(-1) == 'a') {
+				move = pattern[i].substring(3, pattern[i].length - 1);
+				fullCharset = true;
+			} else {
+				move = pattern[i].substring(3);
+			}
+			move = parseInt(move) * -1;
+			decodedString = nestedDecoderDecodeRot(decodedString, move, fullCharset);
 			continue;
 		}
 		switch(pattern[i]) {
@@ -120,6 +134,36 @@ function nestedDecoderDecodeMultiBase(encodedString, base) {
 		decodedString += parseInt(encodedString[i], base).toString() + ' ';
 	}
 	return decodedString.slice(0, -1);
+}
+
+function nestedDecoderDecodeRot(encodedString, move, fullCharset) {
+	if(!fullCharset)
+		move = move % 26;
+	if(move == 0)
+		return encodedString;
+	move = parseInt(move);
+	var decodedString = '';
+	for(let i = 0; i < encodedString.length; i++) {
+		let charCode = parseInt(encodedString.charCodeAt(i));
+		if(!fullCharset) {
+			if(charCode < 65 || charCode > 122 || (charCode > 90 && charCode < 97))
+				null;
+			else if(charCode < 91 && charCode + move >= 91)
+				charCode += move - 26;
+			else if(charCode > 96 && charCode + move <= 96)
+				charCode += move + 26;
+			else if(charCode + move < 65)
+				charCode += move + 26;
+			else if(charCode + move > 122)
+				charCode += move - 26;
+			else
+				charCode += move;
+		} else {
+			charCode += move;
+		}
+		decodedString += String.fromCharCode.apply(null, [charCode]);
+	}
+	return decodedString;
 }
 
 function nestedDecoderDecodeUnary(encodedString) {
